@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Scanning and Decoding a QR code</title>
+</head>
+<body>
+
+<video id="local-video" autoplay playsinline></video>
+
+<div id="decoded-data"></div>
+</body>
+
+<script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
+<script>
+    const constraints = {
+        audio: false,
+        video: true
+    };
+
+
+    function extractURL(text) {
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        const matches = text.match(urlRegex);
+        if (matches && matches.length > 0) {
+            return matches[0];
+        }
+        return null;
+    }
+
+
+    const decodedDataDiv = document.getElementById('decoded-data');
+
+
+    navigator.mediaDevices.getUserMedia(constraints)
+        .then(function (mediaStream) {
+            const video = document.getElementById('local-video');
+
+            video.srcObject = mediaStream;
+            video.onloadedmetadata = function (e) {
+
+                video.play();
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+
+                setInterval(() => {
+
+                    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+
+                    const code = jsQR(imageData.data, imageData.width, imageData.height);
+                    if (code) {
+                        console.log('Scanning Successed:', code.data);
+
+                        decodedDataDiv.innerText = code.data;
+                        
+
+                        const url = extractURL(code.data);
+                        if (url) {
+                            console.log('Extracted link:', url);
+
+                            window.open(url, '_blank');
+                        }
+                    }
+                }, 1000);
+            };
+        })
+        .catch(function (err) {
+            console.log('Unable to access camera:', err);
+        });
+</script>
+</html>
